@@ -18,7 +18,7 @@ python train.py --gpu=0
 python train.py --gpu=0,1
 ```
 
-The original dataset is very huge. You can only specify the number of samples you want to use. By default we use all samples.
+The original dataset is very huge. You can specify the number of samples you want to use. By default we use all samples.
 Note that more samples result in more trainable parameters and thus more CUDA memory.
 ```
 python train.py --gpu=0 --n_samples=10000
