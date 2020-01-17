@@ -26,3 +26,8 @@ python train.py --gpu=0 --n_samples=10000
 ```
 
 Other hyper-parameters are in param_parser.py, which are all self-explained. You can tune the parameters accordingly.
+
+Other tips to note:
+1) The source language is input in the reversed order.
+2) Our decoder loop starts at 1, not 0. This means the 0th element of our outputs tensor remains all zeros. 
+So when we calculate the loss, we cut off the first element of each tensor.

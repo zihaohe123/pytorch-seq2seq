@@ -5,6 +5,8 @@ from model import Encoder, Decoder, Seq2Seq
 from data_preprocessing import get_data_loader
 import os, time
 from utils import eplased_time_since, count_parameters
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class Solver:
