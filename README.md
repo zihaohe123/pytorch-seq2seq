@@ -22,7 +22,6 @@ The original dataset is very huge. You can only specify the number of samples yo
 Note that more samples result in more trainable parameters and thus more CUDA memory.
 ```
 python train.py --gpu=0 --n_samples=10000
-
 ```
 
 Other hyper-parameters are in param_parser.py, which are all self-explained. You can tune the parameters accordingly.
