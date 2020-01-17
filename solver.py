@@ -1,10 +1,14 @@
+import os
+import time
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from model import Encoder, Decoder, Seq2Seq
+
+from model2lstm import lstm2lstm_baseline
 from data_preprocessing import get_data_loader
-import os, time
 from utils import eplased_time_since, count_parameters
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -12,10 +16,14 @@ warnings.filterwarnings("ignore")
 class Solver:
     def __init__(self, args):
         self.args = args
+
+        # gpus
+        os.environ['CUDA_VISIBLE_DEVICES'] = self.args.gpu
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
         self.model = None
         self.optimizer = None
         self.criterion = None
-        self.device = None
         self.train_iterator = None
         self.val_iterator = None
         self.test_iterator = None
@@ -26,22 +34,17 @@ class Solver:
         if not os.path.exists(self.args.ckp_path):
             os.makedirs(self.args.ckp_path)
 
-        # how to use GPUs
-        os.environ['CUDA_VISIBLE_DEVICES'] = self.args.gpu
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-        print('\nPreparing data....')
+        print('Preparing data...')
         src, trg, train_iterotor, val_iterator, test_iterator = \
             get_data_loader(self.args.data_path, self.args.src_lang, self.args.trg_lang, self.args.n_samples,
                             self.args.batch_size, self.device)
-        input_dim = len(src.vocab)
-        output_dim = len(trg.vocab)
-        enc = Encoder(input_dim, self.args.enc_emb_dim, self.args.hid_dim, self.args.n_layers, self.args.enc_dropout)
-        dec = Decoder(output_dim, self.args.dec_emb_dim, self.args.hid_dim, self.args.n_layers, self.args.dec_dropout)
+        input_dim, output_dim = len(src.vocab), len(trg.vocab)
+        print('Done.')
 
-        print('\nInitializing the model....')
-        model = Seq2Seq(enc, dec, self.device, teacher_forcing_ratio=self.args.teacher_force_ratio)
+        model = lstm2lstm_baseline(self.device, input_dim, output_dim)
+        self.model = model
         print('The model has {} trainable parameters'.format(count_parameters(model)))
+
         device_count = 0
         if self.device == 'cuda':
             device_count = torch.cuda.device_count()
