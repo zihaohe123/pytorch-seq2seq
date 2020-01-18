@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from model2lstm import lstm2lstm_baseline
-from data_preprocessing import get_data_loader
+from data_preprocessing import train_data_loader
 from utils import eplased_time_since, count_parameters
 
 import warnings
@@ -26,7 +26,6 @@ class Solver:
         self.criterion = None
         self.train_iterator = None
         self.val_iterator = None
-        self.test_iterator = None
         self.src = None
         self.trg = None
 
@@ -35,8 +34,8 @@ class Solver:
             os.makedirs(self.args.ckp_path)
 
         print('Preparing data...')
-        src, trg, train_iterotor, val_iterator, test_iterator = \
-            get_data_loader(self.args.data_path, self.args.src_lang, self.args.trg_lang, self.args.n_samples,
+        src, trg, train_iterator, val_iterator = \
+            train_data_loader(self.args.data_path, self.args.src_lang, self.args.trg_lang, self.args.n_samples,
                             self.args.batch_size, self.device)
         input_dim, output_dim = len(src.vocab), len(trg.vocab)
         print('Done.')
@@ -64,9 +63,8 @@ class Solver:
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
-        self.train_iterator = train_iterotor
+        self.train_iterator = train_iterator
         self.val_iterator = val_iterator
-        self.test_iterator = test_iterator
         self.src = src
         self.trg = trg
 

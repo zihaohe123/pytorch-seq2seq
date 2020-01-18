@@ -7,7 +7,6 @@ def main():
     solver = Solver(args)
     solver.init_training()
     solver.train()
-    solver.test()
 
 
 if __name__ == '__main__':
