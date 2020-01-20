@@ -162,7 +162,7 @@ class Solver:
         # preprocessing pipeline
         print('Preprocessing test set...')
         model_dict = pickle.load(open(os.path.join(self.args.ckp_path, 'model_dict.pkl'), 'rb'))
-        test_it = test_data_loader('data/test.de-en.de', model_dict['source_vocab'], batch_size=self.args.batch_size)
+        test_it = test_data_loader(fh, model_dict['source_vocab'], batch_size=self.args.batch_size)
 
         # create and load model
         model = lstm2lstm_baseline(self.device, model_dict['input_dim'], model_dict['output_dim'])
@@ -177,10 +177,23 @@ class Solver:
 
         output_seqs = []
         for i, batch in enumerate(test_it):
-            batch_output_seqs = self.model.translate(batch.src, sos_tok=sos_tok, max_len=5)
+            batch_output_seqs = self.model.translate(batch.src, sos_tok=sos_tok)
             output_seqs.extend(batch_output_seqs)
             break
 
-        print(output_seqs)
-
         # post-processing of sequences
+        # convert indexes to tokens
+        trg = model_dict['target_vocab']
+        output_seqs = list(map(lambda x: list(map(lambda tok: trg.vocab.itos[tok], x)), output_seqs))
+
+        # detokenize 
+        detokenize = lambda x: ' '.join(x)
+        output_seqs = list(map(lambda x: detokenize(x), output_seqs))
+
+        # write to file
+        output_file = open('data/output.en', 'wt')
+        for output_seq in output_seqs:
+            output_file.write(output_seq)
+        output_file.close()
+
+

@@ -5,7 +5,7 @@ from solver import Solver
 def main():
     args = parameter_parser()
     solver = Solver(args)
-    solver.translate("Die beabsichtigte Maßnahme ist ein weiterer, entscheidender Schritt, um die finanzielle Stabilität von Irland, des Euroraums und der Europäischen Union als Ganzes zu sichern.")
+    solver.translate('data/test.de-en.de')
 
 
 if __name__ == '__main__':
