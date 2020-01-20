@@ -118,6 +118,9 @@ class Seq2Seq(nn.Module):
         return outputs
 
     def translate(self, src, max_len=100, sos_tok=None):
+        batch_size = src.shape[1]
+        trg_vocab_size = self.decoder.output_dim
+
         # encode inputs
         hidden, cell = self.encoder(src)
 
@@ -125,7 +128,9 @@ class Seq2Seq(nn.Module):
         outputs = torch.zeros(size=(max_len, batch_size, trg_vocab_size), device=self.device)
 
         # first input to the decoder is the <sos> tokens
-        input = torch.Tensor([sos_tok])
+        # input [ batch_size ]
+        input = torch.LongTensor([sos_tok]).repeat(batch_size)
+        output_seqs = [[sos_tok]] * batch_size
 
         for t in range(1, max_len):
             # insert input token embedding, previous hidden and previous cell states
@@ -138,11 +143,13 @@ class Seq2Seq(nn.Module):
             # get the highest predicted token from our predictions
             top1 = output.argmax(1)
 
+            # append the next tok to each seq in batch
+            for i, tok in enumerate(top1):
+                output_seqs[i].append(tok.item())
+
             input = top1
 
-        return outputs
-
-
+        return output_seqs
 
 def lstm2lstm_baseline(device, input_dim, output_dim, enc_emb_dim=128, dec_emb_dim=128, hid_dim=256,
         n_layers=1, enc_dropout=0.5, dec_dropout=0.5, teacher_forcing_ratio=0.75):

@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from model2lstm import lstm2lstm_baseline
-from data_preprocessing import train_data_loader
+from data_preprocessing import train_data_loader, test_data_loader
 from utils import eplased_time_since, count_parameters
 
 import warnings
@@ -156,37 +156,31 @@ class Solver:
                 epoch_loss += loss.item()
         return epoch_loss / len(iterator)
 
-    def translate(self, sentence):
+    def translate(self, fh):
         print('Testing...')
 
         # preprocessing pipeline
         print('Preprocessing test set...')
         model_dict = pickle.load(open(os.path.join(self.args.ckp_path, 'model_dict.pkl'), 'rb'))
+        test_it = test_data_loader('data/test.de-en.de', model_dict['source_vocab'], batch_size=self.args.batch_size)
 
+        # create and load model
         model = lstm2lstm_baseline(self.device, model_dict['input_dim'], model_dict['output_dim'])
         self.model = model
 
         ckp = torch.load(os.path.join(self.args.ckp_path, 'model.pth'))
         self.model.load_state_dict(ckp)
 
+        # get sos token
+        sos_str = '<sos>'
+        sos_tok = model_dict['target_vocab'].vocab.stoi[sos_str]
 
-        self.model.translate(sentence)
-        print('Test Loss: {:.3f}'.format(test_loss))
+        output_seqs = []
+        for i, batch in enumerate(test_it):
+            batch_output_seqs = self.model.translate(batch.src, sos_tok=sos_tok, max_len=5)
+            output_seqs.extend(batch_output_seqs)
+            break
 
-    # def translate(self, sentence):
-    #     ckp = torch.load(os.path.join(self.args.ckp_path, 'model.pth'))
-    #     self.model.load_state_dict(ckp)
-    #     import spacy
-    #     spacy_lang = spacy.load(self.args.src_lang)
-    #
-    #     sentence = '<sos>' + sentence + '<eos>'
-    #     ids = [self.src.vocab.stoi[tok.text] for tok in spacy_lang.tokenizer(sentence)]
-    #     ids = torch.tensor(ids, dtype=torch.long).unsqueeze(1).to(self.device)
-    #
-    #     output_ids = self.model(ids, ids).argmax(2).view(-1).detach().to('cpu').numpy()
-    #
-    #     output_sentence = []
-    #     for each in output_ids:
-    #         output_sentence.append(self.trg.vocab.itos[each])
-    #
-    #     print(output_sentence)
+        print(output_seqs)
+
+        # post-processing of sequences

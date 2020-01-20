@@ -1,6 +1,12 @@
 from torchtext.datasets import Multi30k, TranslationDataset
-from torchtext.data import Field, BucketIterator
+from torchtext.data import Field, Iterator, BucketIterator, TabularDataset
 import spacy, os, random
+
+
+def test_data_loader(data_path, src, batch_size=128, device='cpu'):
+    dataset = TabularDataset(path=data_path, fields=[('src', src)], format='csv')
+    test_iterator = Iterator(dataset, batch_size=batch_size)
+    return test_iterator
 
 def train_data_loader(data_path, src_lang, trg_lang, n_samples=0, batchsize=128, device='cpu'):
     # sampling data
