@@ -194,6 +194,7 @@ class Solver:
         output_file = open('data/output.en', 'wt')
         for output_seq in output_seqs:
             output_file.write(output_seq)
+            output_file.write('\n')
         output_file.close()
 
 
