@@ -1,5 +1,6 @@
 import os
 import time
+import pickle
 
 import torch
 import torch.nn as nn
@@ -67,6 +68,15 @@ class Solver:
         self.val_iterator = val_iterator
         self.src = src
         self.trg = trg
+    
+        # pickle
+        print('Saving preprocessing pipeline...')
+        model_dict = {}
+        model_dict['input_dim'] = input_dim
+        model_dict['output_dim'] = output_dim
+        model_dict['source_vocab'] = src
+        model_dict['target_vocab'] = trg
+        pickle.dump(model_dict, open(os.path.join(self.args.ckp_path, 'model_dict.pkl'), 'wb'))
 
     def train(self):
         best_val_loss = float('inf')
@@ -77,7 +87,7 @@ class Solver:
             print('*'*20+'Epoch: {}'.format(epoch+1)+'*'*20)
             start_time = time.time()
             train_loss = self.train_epoch()
-            val_loss = self.evaluate(self.val_iterator)
+            val_loss = self.validate(self.val_iterator)
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -91,12 +101,6 @@ class Solver:
                                                                           train_loss, val_loss,
                                                                           best_val_loss, best_val_loss_epoch+1))
 
-    def test(self):
-        print('\nStarting test....')
-        ckp = torch.load(os.path.join(self.args.ckp_path, 'model.pth'))
-        self.model.load_state_dict(ckp)
-        test_loss = self.evaluate(self.test_iterator)
-        print('Test Loss: {:.3f}'.format(test_loss))
 
     def train_epoch(self):
         self.model.train()
@@ -132,7 +136,7 @@ class Solver:
 
         return epoch_loss / len(self.train_iterator)
 
-    def evaluate(self, iterator):
+    def validate(self, iterator):
         self.model.eval()
         epoch_loss = 0
         with torch.no_grad():
@@ -152,6 +156,23 @@ class Solver:
                 epoch_loss += loss.item()
         return epoch_loss / len(iterator)
 
+    def translate(self, sentence):
+        print('Testing...')
+
+        # preprocessing pipeline
+        print('Preprocessing test set...')
+        model_dict = pickle.load(open(os.path.join(self.args.ckp_path, 'model_dict.pkl'), 'rb'))
+
+        model = lstm2lstm_baseline(self.device, model_dict['input_dim'], model_dict['output_dim'])
+        self.model = model
+
+        ckp = torch.load(os.path.join(self.args.ckp_path, 'model.pth'))
+        self.model.load_state_dict(ckp)
+
+
+        self.model.translate(sentence)
+        print('Test Loss: {:.3f}'.format(test_loss))
+
     # def translate(self, sentence):
     #     ckp = torch.load(os.path.join(self.args.ckp_path, 'model.pth'))
     #     self.model.load_state_dict(ckp)
@@ -169,5 +190,3 @@ class Solver:
     #         output_sentence.append(self.trg.vocab.itos[each])
     #
     #     print(output_sentence)
-
-
