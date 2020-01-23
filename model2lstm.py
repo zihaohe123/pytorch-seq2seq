@@ -81,7 +81,7 @@ class Decoder2(nn.Module):
         # outputs: [trg_len, batch_size, hid_dim*n_directions]
         # hidden: [n_layers*n_directions, batch_size, hid_dim]
         # cell: [n_layers*n_directions, batch_size, hid_dim]
-        outputs, (hidden, cell) = self.rnn(embedding)   # outputs are always from the top hidden layer
+        outputs, (hidden, cell) = self.rnn(embedding, (hidden, cell))   # outputs are always from the top hidden layer
 
         trg_len, batch_size = trg.shape
         prediction = torch.zeros(size=(trg_len, batch_size, self.output_dim), device=device)
