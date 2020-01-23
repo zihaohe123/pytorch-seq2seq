@@ -1,6 +1,7 @@
 import os
 import tqdm
 import numpy as np
+import random 
 
 import pdb
 
@@ -156,6 +157,7 @@ for epoch in range(1, 10+1):
     # validation
     model.eval()
     val_loss = 0.
+    random_batch = random.randint(1, len(val_iterator))
     for i, batch in enumerate(tqdm.tqdm(val_iterator)):
         with torch.no_grad():
             batch_input_seq, batch_input_len = batch.src
@@ -167,14 +169,17 @@ for epoch in range(1, 10+1):
             val_loss += loss.item()
 
             # generate the sequences
-            if i == 10:
+            if i == random_batch:
                 saved_outputs = outputs
                 saved_batch_output_seq = np.array(batch_output_seq.tolist())
 
     # print a random batch
     itos = lambda x: target.vocab.itos[x]
-    print('\n')
+    print('Randomly sampling some output...')
+    print('=== Ground truth ===')
     print(np.vectorize(itos)(saved_batch_output_seq.T)[0:5])
+    print('=== Predictions ===')
     print(np.vectorize(itos)(saved_outputs.T)[0:5])
+    print('Done.')
 
     print('Validation loss: %f' % val_loss)
