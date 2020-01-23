@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from model2lstm import lstm2lstm_baseline
+from model2lstm import lstm2lstm_baseline,lstm2lstm_baseline2
 from data_preprocessing import train_data_loader, test_data_loader
 from utils import eplased_time_since, count_parameters
 
@@ -41,7 +41,8 @@ class Solver:
         input_dim, output_dim = len(src.vocab), len(trg.vocab)
         print('Done.')
 
-        model = lstm2lstm_baseline(self.device, input_dim, output_dim)
+        # model = lstm2lstm_baseline(self.device, input_dim, output_dim)
+        model = lstm2lstm_baseline2(self.device, input_dim, output_dim)
         self.model = model
         print('The model has {} trainable parameters'.format(count_parameters(model)))
 

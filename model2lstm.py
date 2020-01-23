@@ -62,6 +62,39 @@ class Decoder(nn.Module):
         return prediction, hidden, cell
 
 
+class Decoder2(nn.Module):
+    def __init__(self, output_dim, emb_dim, hid_dim, n_layers, dropout):
+        super(Decoder2, self).__init__()
+        self.output_dim = output_dim
+        self.hid_dim = hid_dim
+        self.n_layers = n_layers
+        self.embedding = nn.Embedding(output_dim, emb_dim)
+        self.rnn = nn.LSTM(emb_dim, hid_dim, n_layers, dropout=dropout)
+        self.fc_out = nn.Linear(hid_dim, output_dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, trg, hidden, cell, device):
+        # trg: [trg_len, batch_size]
+        # embedding: [trg_len, batch_size, emb_dim]
+        embedding = self.dropout(self.embedding(trg))
+
+        # outputs: [trg_len, batch_size, hid_dim*n_directions]
+        # hidden: [n_layers*n_directions, batch_size, hid_dim]
+        # cell: [n_layers*n_directions, batch_size, hid_dim]
+        outputs, (hidden, cell) = self.rnn(embedding)   # outputs are always from the top hidden layer
+
+        trg_len, batch_size = trg.shape
+        prediction = torch.zeros(size=(trg_len, batch_size, self.output_dim), device=device)
+        for t in range(1, trg_len):
+            # token: [batch_size, hid_dim*n_directions]
+            token = outputs[t]
+            prediction_t = self.fc_out(token)
+            prediction[t] = prediction_t
+
+        return prediction
+
+
+
 def init_weights(model):
     for name, param in model.named_parameters():
         nn.init.uniform_(param.data, -0.08, 0.08)
@@ -151,6 +184,60 @@ class Seq2Seq(nn.Module):
 
         return output_seqs
 
+
+class Seq2Seq2(nn.Module):
+    def __init__(self, encoder, decoder, device, teacher_forcing_ratio=0.5):
+        super(Seq2Seq2, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+        self.device = device
+        self.teacher_forcing_ratio = teacher_forcing_ratio
+        assert encoder.hid_dim == decoder.hid_dim, "Hidden dimensions of encoder and decoder must be equal!"
+        assert encoder.n_layers == decoder.n_layers, "Encoder and decoder must have equal number of layers!"
+        init_weights(self)
+
+    def forward(self, src, trg):
+        # last hidden state of the encoder is used as the initial hidden state
+        hidden, cell = self.encoder(src)
+
+        prediction = self.decoder(trg, hidden, cell, self.device)
+        return prediction
+
+    def translate(self, src, max_len=100, sos_tok=None):
+        batch_size = src.shape[1]
+        trg_vocab_size = self.decoder.output_dim
+
+        # encode inputs
+        hidden, cell = self.encoder(src)
+
+        # tensor to store decoder outputs
+        outputs = torch.zeros(size=(max_len, batch_size, trg_vocab_size), device=self.device)
+
+        # first input to the decoder is the <sos> tokens
+        # input [ batch_size ]
+        input = torch.LongTensor([sos_tok]).repeat(batch_size)
+        output_seqs = [[sos_tok]] * batch_size
+
+        for t in range(1, max_len):
+            # insert input token embedding, previous hidden and previous cell states
+            # receive output tensor (predictions) and new hidden and cell states
+            output, hidden, cell = self.decoder(input, hidden, cell)
+
+            # place predictions in a tensor holding predictions for each token
+            outputs[t] = output
+
+            # get the highest predicted token from our predictions
+            top1 = output.argmax(1)
+
+            # append the next tok to each seq in batch
+            for i, tok in enumerate(top1):
+                output_seqs[i].append(tok.item())
+
+            input = top1
+
+        return output_seqs
+
+
 def lstm2lstm_baseline(device, input_dim, output_dim, enc_emb_dim=128, dec_emb_dim=128, hid_dim=256,
         n_layers=1, enc_dropout=0.5, dec_dropout=0.5, teacher_forcing_ratio=0.75):
         print('Initializing model...')
@@ -160,3 +247,14 @@ def lstm2lstm_baseline(device, input_dim, output_dim, enc_emb_dim=128, dec_emb_d
 
         print('Done.')
         return model
+
+
+def lstm2lstm_baseline2(device, input_dim, output_dim, enc_emb_dim=128, dec_emb_dim=128, hid_dim=256,
+                       n_layers=1, enc_dropout=0.5, dec_dropout=0.5, teacher_forcing_ratio=0.75):
+    print('Initializing model...')
+    enc = Encoder(input_dim, enc_emb_dim, hid_dim, n_layers, enc_dropout)
+    dec = Decoder2(output_dim, dec_emb_dim, hid_dim, n_layers, dec_dropout)
+    model = Seq2Seq2(enc, dec, device, teacher_forcing_ratio=teacher_forcing_ratio)
+
+    print('Done.')
+    return model
