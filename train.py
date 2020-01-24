@@ -15,7 +15,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
 print('Loading data...')
-dataset = 'multi30k'    # replace with argparse
+dataset = 'iwslt'    # replace with argparse
 func = getattr(datasets, dataset)
 (source, target), (train_iterator, val_iterator), (tokenizer, detokenizer) = func(device)
 print('Done.')
