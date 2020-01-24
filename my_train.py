@@ -157,6 +157,7 @@ for epoch in range(1, 10+1):
     # validation
     model.eval()
     val_loss = 0.
+    total_toks, total_seqs = 0, 0
     random_batch = random.randint(1, len(val_iterator))
     for i, batch in enumerate(tqdm.tqdm(val_iterator)):
         with torch.no_grad():
@@ -167,6 +168,9 @@ for epoch in range(1, 10+1):
 
             loss = model.loss(logits_seq, batch_output_seq, criterion)
             val_loss += loss.item()
+
+            total_toks += int(batch_output_len.sum())
+            total_seqs += batch_output_len.shape[0]
 
             # generate the sequences
             if i == random_batch:
@@ -182,4 +186,6 @@ for epoch in range(1, 10+1):
     print(np.vectorize(itos)(saved_outputs.T)[0:5])
     print('Done.')
 
-    print('Validation loss: %f' % val_loss)
+    print('Total validation loss: %f' % val_loss)
+    print('Average token loss: %f' % (val_loss / total_toks))
+    print('Average sequence loss: %f' % (val_loss / total_seqs))
