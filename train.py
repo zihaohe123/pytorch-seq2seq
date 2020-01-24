@@ -21,7 +21,7 @@ func = getattr(datasets, dataset)
 print('Done.')
 
 print('Creating model...')
-name = 'Seq2Seq'    # replace with argparse
+name = 'Seq2SeqWithMainstreamImprovements'    # replace with argparse
 class_ = getattr(model2lstm, name)
 model = class_(input_vocab_size=len(source.vocab), output_vocab_size=len(target.vocab))
 model.to(device)
