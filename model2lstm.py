@@ -25,16 +25,15 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
 
     def forward(self, input_seq, output_seq, training=True, sos_tok=0, max_length=0, device=None):
         input_emb = self.input_embedding(input_seq)
-        output_emb = self.output_embedding(output_seq)
 
         # add dropout
         input_emb = self.dropout(input_emb)
-        output_emb = self.dropout(output_emb)
-
         hidden_states, (last_hidden, last_cell) = self.encoder(input_emb)   #(h_0 = _0_, c_0 = _0_)
 
         if training:
             # full teacher forcing
+            output_emb = self.dropout(output_emb)
+
             hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
             logits_seq = F.linear(hidden_states, self.output_embedding.weight)
             return logits_seq
@@ -90,12 +89,12 @@ class Seq2Seq(nn.Module):
 
     def forward(self, input_seq, output_seq, training=True, sos_tok=0, max_length=0, device=None):
         input_emb = self.input_embedding(input_seq)
-        output_emb = self.output_embedding(output_seq)
-
         hidden_states, (last_hidden, last_cell) = self.encoder(input_emb)   #(h_0 = _0_, c_0 = _0_)
 
         if training:
             # full teacher forcing
+            output_emb = self.output_embedding(output_seq)
+
             hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
             logits_seq = self.linear(hidden_states)
             return logits_seq
@@ -104,7 +103,7 @@ class Seq2Seq(nn.Module):
             logits_seq = []
             outputs = []
 
-            batch_size = output_seq.shape[1]
+            batch_size = input_seq.shape[1]
             last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
             last_output_emb = self.output_embedding(last_output_seq)
 
