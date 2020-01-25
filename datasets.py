@@ -4,16 +4,13 @@ from torchtext.datasets import IWSLT
 
 def multi30k(device):
     print('Loading data with torchtext...')
-    tokenizer = lambda x: x.split()
-    detokenizer = lambda x: ' '.join(x)
-
     source = Field(
             sequential=True,
             use_vocab=True,
             init_token='<SOS>',
             eos_token='<EOS>',
             lower=True,
-            tokenize=tokenizer,
+            tokenize=str.split,
             include_lengths=True,
             batch_first=False,
             pad_token='<pad>',
@@ -26,7 +23,7 @@ def multi30k(device):
             init_token='<SOS>',
             eos_token='<EOS>',
             lower=True,
-            tokenize=tokenizer,
+            tokenize=str.split,
             include_lengths=True,
             batch_first=False,
             pad_token='<pad>',
@@ -47,20 +44,17 @@ def multi30k(device):
         device=device
     )
 
-    return (source, target), (train_iterator, val_iterator), (tokenizer, detokenizer)
+    return (source, target), (train_iterator, val_iterator)
 
 def iwslt(device):
     print('Loading data with torchtext...')
-    tokenizer = lambda x: x.split()
-    detokenizer = lambda x: ' '.join(x)
-
     source = Field(
             sequential=True,
             use_vocab=True,
             init_token='<SOS>',
             eos_token='<EOS>',
             lower=True,
-            tokenize=tokenizer,
+            tokenize=str.split,
             include_lengths=True,
             batch_first=False,
             pad_token='<pad>',
@@ -73,7 +67,7 @@ def iwslt(device):
             init_token='<SOS>',
             eos_token='<EOS>',
             lower=True,
-            tokenize=tokenizer,
+            tokenize=str.split,
             include_lengths=True,
             batch_first=False,
             pad_token='<pad>',
@@ -94,4 +88,4 @@ def iwslt(device):
         device=device
     )
 
-    return (source, target), (train_iterator, val_iterator), (tokenizer, detokenizer)
+    return (source, target), (train_iterator, val_iterator)

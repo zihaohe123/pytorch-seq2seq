@@ -2,6 +2,7 @@ import os
 import tqdm
 import numpy as np
 import random 
+import pickle
 
 import torch
 from torch import nn, optim
@@ -15,13 +16,18 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
 print('Loading data...')
-dataset = 'iwslt'    # replace with argparse
+dataset = 'multi30k'    # replace with argparse
 func = getattr(datasets, dataset)
-(source, target), (train_iterator, val_iterator), (tokenizer, detokenizer) = func(device)
+(source, target), (train_iterator, val_iterator) = func(device)
 print('Done.')
 
+print('Saving fields...')
+pickle.dump(source, open('experiments/test/source.pkl', 'wb'))
+pickle.dump(target, open('experiments/test/target.pkl', 'wb'))
+print('Done...')
+
 print('Creating model...')
-name = 'Seq2SeqWithMainstreamImprovements'    # replace with argparse
+name = 'Seq2Seq'    # replace with argparse
 class_ = getattr(model2lstm, name)
 model = class_(input_vocab_size=len(source.vocab), output_vocab_size=len(target.vocab))
 model.to(device)
@@ -69,7 +75,7 @@ for epoch in range(1, 10+1):
         with torch.no_grad():
             batch_input_seq, batch_input_len = batch.src
             batch_output_seq, batch_output_len = batch.trg
-            outputs, logits_seq = model(batch_input_seq, batch_output_seq, training=False, 
+            outputs, logits_seq = model(batch_input_seq, output_seq=None, training=False, 
                     sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0]-1, device=device)
 
             loss = model.loss(logits_seq, batch_output_seq, criterion)
@@ -82,6 +88,13 @@ for epoch in range(1, 10+1):
             if i == random_batch:
                 saved_outputs = outputs
                 saved_batch_output_seq = np.array(batch_output_seq.tolist())
+
+    # save best model
+    if val_loss <= best_val_loss:
+        print('Best validation loss achieved. Saving model...')
+        best_val_loss = val_loss
+        torch.save(model, 'experiments/test/model.pkl')
+        print('Done.')
 
     # print a random batch
     itos = lambda x: target.vocab.itos[x]
