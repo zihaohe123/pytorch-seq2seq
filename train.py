@@ -16,15 +16,10 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
 print('Loading data...')
-dataset = 'multi30k'    # replace with argparse
+dataset = 'iwslt2014'    # replace with argparse
 func = getattr(datasets, dataset)
-(source, target), (train_iterator, val_iterator) = func(device)
+(source, target), (train_iterator, val_iterator, test_iterator) = func(device)
 print('Done.')
-
-print('Saving fields...')
-pickle.dump(source, open('experiments/test/source.pkl', 'wb'))
-pickle.dump(target, open('experiments/test/target.pkl', 'wb'))
-print('Done...')
 
 print('Creating model...')
 name = 'Seq2Seq'    # replace with argparse

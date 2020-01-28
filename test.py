@@ -13,19 +13,14 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
 print('Loading data...')
-dataset = 'multi30k'    # replace with argparse
+dataset = 'iwslt2014'    # replace with argparse
 func = getattr(datasets, dataset)
-(source, target), (train_iterator, val_iterator) = func(device)
+(source, target), (train_iterator, val_iterator, test_iterator) = func(device)
 print('Done.')
 
 print('Creating model...')
 model = torch.load('experiments/test/model.pkl')
 model.to(device)
-print('Done.')
-
-print('Loading fields...')
-source = pickle.load(open('experiments/test/source.pkl', 'rb'))
-target = pickle.load(open('experiments/test/target.pkl', 'rb'))
 print('Done.')
 
 target_sos_idx = target.vocab.stoi['<SOS>']
@@ -34,7 +29,7 @@ output_file = open('experiments/test/predictions', 'wt')
 # validation
 model.eval()
 test_loss = 0.
-for i, batch in enumerate(tqdm.tqdm(val_iterator)):
+for i, batch in enumerate(tqdm.tqdm(test_iterator)):
     with torch.no_grad():
         batch_input_seq, batch_input_len = batch.src
         outputs, logits_seq = model(batch_input_seq, output_seq=None, training=False, 
