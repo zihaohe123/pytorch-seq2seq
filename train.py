@@ -10,6 +10,7 @@ from torch import nn, optim
 
 from torchtext.data import Field, BucketIterator
 from torchtext.datasets import Multi30k
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 print('Setting CUDA_VISIBLE_DEVICES...')
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -42,10 +43,8 @@ target = Field(
         pad_token='<pad>',
         unk_token='<unk>'
     )
-
 train_dataset, test_dataset, val_dataset = Multi30k.splits(exts=('.de','.en'), fields=(source, target))
 print('Done.')
-
 print('Building vocabulary...')
 target.build_vocab(train_dataset, min_freq=20)
 source.build_vocab(train_dataset, min_freq=20)
@@ -53,7 +52,7 @@ print('Done.')
 
 train_iterator, val_iterator = BucketIterator.splits(
         datasets=(train_dataset, val_dataset),
-        batch_size=32, 
+        batch_size=32,
         device=device
     )
 
@@ -61,7 +60,6 @@ print('Creating model...')
 class Seq2Seq(nn.Module):
     def __init__(self):
         super(Seq2Seq, self).__init__()
-        
         self.input_embedding = nn.Embedding(num_embeddings=len(source.vocab), embedding_dim=256)
         self.output_embedding = nn.Embedding(num_embeddings=len(target.vocab), embedding_dim=256)
 
@@ -70,19 +68,31 @@ class Seq2Seq(nn.Module):
         self.decoder = nn.LSTM(input_size=256, hidden_size=256, num_layers=2, dropout=0.5)
         self.linear = nn.Linear(in_features=256, out_features=len(target.vocab), bias=True)
 
-    def forward(self, input_seq, output_seq, training=True, sos_tok=0, max_length=0, device=None):
-        input_emb = self.input_embedding(input_seq)
+    def forward(self, input_seq, output_seq, input_seq_length,output_seq_length,training=True, sos_tok=0, max_length=0, device=None):
+        #26 32 256 the shape of this input_emb
+        input_emb  = self.input_embedding(input_seq)
         output_emb = self.output_embedding(output_seq)
 
-        hidden_states, (last_hidden, last_cell) = self.encoder(input_emb)   #(h_0 = _0_, c_0 = _0_)
-
+        packed_input = pack_padded_sequence(input_emb, input_seq_length.cpu().numpy(),enforce_sorted=False)
+        hidden_states_1, (last_hidden, last_cell) = self.encoder(packed_input)   #(h_0 = _0_, c_0 = _0_)
         if training:
-            # full teacher forcing
-            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
-            logits_seq = self.linear(hidden_states)
+            packed_output = pack_padded_sequence(output_emb[:-1], output_seq_length.cpu().numpy()-1, enforce_sorted=False)
+            # hidden_states_normal, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
+            # I think this place is right, since it is training process, so that we should give the target a fixed
+            # sentence length, so after unpacked, it will back to normal
+            hidden_states, (last_hidden, last_cell) = self.decoder(packed_output, (last_hidden, last_cell))
+            #hidden_states, seq_sum * 256
+            unpacked_hidden_states_output, input_sizes = pad_packed_sequence(hidden_states, padding_value=target_pad_idx)
+            # in this way, it will have an unpacked output, where pad is target_pad_idx and this target_pad_idx will
+            # be removed in creteria process.
+            logits_seq = self.linear(unpacked_hidden_states_output)
+
             return logits_seq
         else:
             # decode
+            # there is no need to change this validation part, since it is going to predict each word, and the
+            # out_put_hidden_state's shape is B*256, so cannot use the unpack function. Since unpack function
+            # require Sequence_sum * B * 256 shape.
             logits_seq = []
             outputs = []
 
@@ -91,7 +101,7 @@ class Seq2Seq(nn.Module):
             last_output_emb = self.output_embedding(last_output_seq)
 
             for t in range(0, max_length):
-                # last_hidden and last_cell comes from encoder
+                # last_hidden and last_cell comes from encoder(packed embedding)
                 hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (last_hidden, last_cell))
                 logits = self.linear(hidden_state)
                 logits_seq.append(logits)
@@ -103,17 +113,16 @@ class Seq2Seq(nn.Module):
 
             logits_seq = torch.cat(logits_seq, dim=0)
             outputs = np.array([ i.tolist()[0] for i in outputs ])
-            return outputs, logits_seq 
-
+            return outputs, logits_seq
 
     def loss(self, logits_seq, output_seq, criterion):
         # remove <sos> and shift output seq by 1
         shape = output_seq.shape
-        chain_length = (shape[0] - 1) * shape[1]        # (seq_len - 1) * batch_size
-        chained_output_seq = output_seq[1:].permute(1,0).reshape(chain_length)
+        chain_length = (shape[0] - 1) * shape[1]  # (seq_len - 1) * batch_size
+        chained_output_seq = output_seq[1:].permute(1, 0).reshape(chain_length)
 
         shape = logits_seq.shape
-        chained_logits_seq = logits_seq.permute(1,0,2).reshape(chain_length, shape[2])
+        chained_logits_seq = logits_seq.permute(1, 0, 2).reshape(chain_length, shape[2])
 
         return criterion(chained_logits_seq, chained_output_seq)
 
@@ -136,9 +145,11 @@ for epoch in range(1, 10+1):
     tqdm_iterator = tqdm.tqdm(train_iterator)
     for batch in tqdm_iterator:
         batch_input_seq, batch_input_len = batch.src
+        #shape = 32 for the batch input_len, inside is the length of each sentence
+        #input_seq is tokenized(###,###,###) start is 2, end is 1
         batch_output_seq, batch_output_len = batch.trg
 
-        logits_seq = model(batch_input_seq, batch_output_seq, training=True)
+        logits_seq = model(batch_input_seq, batch_output_seq, batch_input_len,batch_output_len,training=True)
         loss = model.loss(logits_seq, batch_output_seq, criterion)
 
         optimizer.zero_grad()
@@ -163,7 +174,7 @@ for epoch in range(1, 10+1):
         with torch.no_grad():
             batch_input_seq, batch_input_len = batch.src
             batch_output_seq, batch_output_len = batch.trg
-            outputs, logits_seq = model(batch_input_seq, batch_output_seq, training=False, 
+            outputs, logits_seq = model(batch_input_seq, batch_output_seq, batch_input_len,batch_output_len,training=False,
                     sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0]-1, device=device)
 
             loss = model.loss(logits_seq, batch_output_seq, criterion)
