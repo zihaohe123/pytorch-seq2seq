@@ -1,6 +1,7 @@
 import os
 import tqdm
 import pickle
+import subprocess
 
 import torch
 import numpy as np
@@ -37,8 +38,13 @@ for i, batch in enumerate(tqdm.tqdm(test_iterator)):
 
     # convert to tokens
     itos = lambda x: target.vocab.itos[x]
-    outputs = np.vectorize(itos)(outputs.T)[0:5]
+    outputs = np.vectorize(itos)(outputs.T)
 
     # write to file
     for i in outputs:
         output_file.write(' '.join(i) + '\n')
+output_file.close()
+
+# post processing pipeline
+subprocess.run('./detokenizer.sh %s %s' % ('./experiments/test/predictions', 'en'), shell=True)
+subprocess.run('cat ./experiments/test/predictions.detok | sacrebleu %s' % './data/iwslt2014/references.de-en.en', shell=True)
