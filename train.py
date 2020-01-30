@@ -25,7 +25,7 @@ func = getattr(datasets, dataset)
 print('Done.')
 
 print('Creating model...')
-name = 'Seq2Seq'    # replace with argparse
+name = 'Seq2SeqWithMainstreamImprovements'    # replace with argparse
 class_ = getattr(model2lstm, name)
 model = class_(input_vocab_size=len(source.vocab), output_vocab_size=len(target.vocab))
 model.to(device)
@@ -46,11 +46,9 @@ for epoch in range(1, 10+1):
     tqdm_iterator = tqdm.tqdm(train_iterator)
     for batch in tqdm_iterator:
         batch_input_seq, batch_input_len = batch.src
-        #shape = 32 for the batch input_len, inside is the length of each sentence
-        #input_seq is tokenized(###,###,###) start is 2, end is 1
         batch_output_seq, batch_output_len = batch.trg
 
-        logits_seq = model(batch_input_seq, batch_output_seq, batch_input_len,batch_output_len,training=True)
+        logits_seq = model(batch_input_seq, batch_output_seq, training=True)
         loss = model.loss(logits_seq, batch_output_seq, criterion)
 
         optimizer.zero_grad()

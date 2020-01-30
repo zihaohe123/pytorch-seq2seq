@@ -47,4 +47,5 @@ output_file.close()
 
 # post processing pipeline
 subprocess.run('./detokenizer.sh %s %s' % ('./experiments/test/predictions', 'en'), shell=True)
-subprocess.run('cat ./experiments/test/predictions.detok | sacrebleu %s' % './data/iwslt2014/references.de-en.en', shell=True)
+subprocess.run('cat ./experiments/test/predictions.detok | \
+        sacrebleu -b %s' % './data/iwslt2014/references.de-en.en', shell=True)

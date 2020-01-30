@@ -11,13 +11,13 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
     def __init__(self, input_vocab_size, output_vocab_size):
         super(Seq2SeqWithMainstreamImprovements, self).__init__()
         
-        self.input_embedding = nn.Embedding(num_embeddings=input_vocab_size, embedding_dim=256)
-        self.output_embedding = nn.Embedding(num_embeddings=output_vocab_size, embedding_dim=256)
+        self.input_embedding = nn.Embedding(num_embeddings=input_vocab_size, embedding_dim=512)
+        self.output_embedding = nn.Embedding(num_embeddings=output_vocab_size, embedding_dim=1024)
 
         # add dropout to lstm
-        self.encoder = nn.LSTM(input_size=256, hidden_size=256, num_layers=2, dropout=0.5)
+        self.encoder = nn.LSTM(input_size=512, hidden_size=1024, num_layers=3, dropout=0.5)
 
-        self.decoder = nn.LSTM(input_size=256, hidden_size=256, num_layers=2, dropout=0.5)
+        self.decoder = nn.LSTM(input_size=1024, hidden_size=1024, num_layers=3, dropout=0.5)
         #self.linear = nn.Linear(in_features=256, out_features=output_vocab_size, bias=True)
         # tie embedding weights instead
 
@@ -32,6 +32,7 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
 
         if training:
             # full teacher forcing
+            output_emb = self.output_embedding(output_seq)
             output_emb = self.dropout(output_emb)
 
             hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
