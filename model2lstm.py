@@ -43,7 +43,7 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
             logits_seq = []
             outputs = []
 
-            batch_size = output_seq.shape[1]
+            batch_size = input_seq.shape[1]
             last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
             last_output_emb = self.output_embedding(last_output_seq)
 

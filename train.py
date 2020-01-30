@@ -63,7 +63,6 @@ for epoch in range(1, 10+1):
         avg_seq_loss = acc_loss / total_seqs
         tqdm_iterator.set_description('avg_tok_loss=%f, avg_seq_loss=%f' % (avg_tok_loss, avg_seq_loss))
 
-
     # validation
     model.eval()
     val_loss = 0.
