@@ -45,7 +45,10 @@ for i, batch in enumerate(tqdm.tqdm(test_iterator)):
         output_file.write(' '.join(i) + '\n')
 output_file.close()
 
-# post processing pipeline
-subprocess.run('./detokenizer.sh %s %s' % ('./experiments/test/predictions', 'en'), shell=True)
-subprocess.run('cat ./experiments/test/predictions.detok | \
-        sacrebleu -b %s' % './data/iwslt2014/references.de-en.en', shell=True)
+print('Detokenizing...')
+subprocess.run('./detokenizer.sh %s %s 2> /dev/null' % ('./experiments/test/predictions', 'en'), shell=True)
+print('Done.')
+
+print('Calculating BLEU...')
+subprocess.run('cat ./experiments/test/predictions.detok | sacrebleu %s' % './data/iwslt2014/references.de-en.en', shell=True)
+print('Done.')

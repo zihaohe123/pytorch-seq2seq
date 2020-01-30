@@ -84,8 +84,17 @@ def bpe_dataset(device, train_path, dev_path, test_path):
     source.build_vocab(train_dataset, min_freq=20)
     print('Done.')
 
-    train_iterator, val_iterator, test_iterator = BucketIterator.splits(
-        datasets=(train_dataset, val_dataset, test_dataset),
+    train_iterator, val_iterator = BucketIterator.splits(
+        datasets=(train_dataset, val_dataset),
+        batch_size=32, 
+        device=device
+    )
+
+    test_iterator = BucketIterator(
+        dataset=test_dataset,
+        train=False,
+        shuffle=False,
+        sort=False,
         batch_size=32, 
         device=device
     )
