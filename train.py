@@ -16,9 +16,10 @@ import argparse
 
 parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
 parser.add_argument('--gpu', type=str, default='0')
+parser.add_argument('--dataset', type=str, choices=('iwslt', 'multi30k', 'bpe_dataset'), default='iwslt')
+parser.add_argument('--model', type=str, choices=('seq2seq', 'Seq2SeqWithMainstreamImprovements'), default='seq2seq')
 parser.add_argument('--n_epochs', type=int, default=10)
 args = parser.parse_args()
-
 
 print('Setting CUDA_VISIBLE_DEVICES...')
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -26,7 +27,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
 print('Loading data...')
-dataset = 'iwslt2014'    # replace with argparse
+dataset = args.dataset
 func = getattr(datasets, dataset)
 (source, target), (train_iterator, val_iterator, test_iterator) = func(device)
 print('Done.')
@@ -36,8 +37,13 @@ if not os.path.exists('experiments/test'):
     os.makedirs('experiments/test')
 print('Done.')
 
+print('Saving config...')
+config = {'dataset': args.dataset}
+torch.save(config, os.path.join('experiments/test', 'config.pt'))
+print('Done.')
+
 print('Creating model...')
-name = 'Seq2SeqWithMainstreamImprovements'    # replace with argparse
+name = args.model
 class_ = getattr(model2lstm, name)
 model = class_(input_vocab_size=len(source.vocab), output_vocab_size=len(target.vocab))
 model.to(device)

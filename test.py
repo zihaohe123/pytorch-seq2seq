@@ -18,8 +18,11 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
+print('Loading config')
+config = torch.load(os.path.join('experiments/test', 'config.pt'))
+dataset = config.dataset
+
 print('Loading data...')
-dataset = 'iwslt2014'    # replace with argparse
 func = getattr(datasets, dataset)
 (source, target), (train_iterator, val_iterator, test_iterator) = func(device)
 print('Done.')
