@@ -44,7 +44,9 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
             outputs = []
 
             batch_size = input_seq.shape[1]
-            last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
+            #last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
+            # constantly moving tensors between cpu and cuda is a bad idea which takes a lot of cpu utilization
+            last_output_seq = torch.zeros(1, batch_size, dtype=torch.long, device=device).fill_(sos_tok)
             last_output_emb = self.output_embedding(last_output_seq)
 
             for t in range(0, max_length):
@@ -93,7 +95,7 @@ class Seq2Seq(nn.Module):
 
         if training:
             # full teacher forcing
-            output_emb = self.output_embedding(output_seq)
+            output_emb = self.output_embedding(output_seq)  # [seq_len, batch_size, emb_dim]
 
             hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (hidden, cell))
             logits_seq = self.linear(hidden_states)
@@ -103,8 +105,11 @@ class Seq2Seq(nn.Module):
             logits_seq = []
             outputs = []
 
+            # input_seq: [seq_len, batch_size]
             batch_size = input_seq.shape[1]
-            last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
+            #last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
+            # constantly moving tensors between cpu and cuda is a bad idea which takes a lot of cpu utilization
+            last_output_seq = torch.zeros(1, batch_size, dtype=torch.long, device=device).fill_(sos_tok)
             last_output_emb = self.output_embedding(last_output_seq)
 
             for t in range(0, max_length):
