@@ -12,6 +12,10 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
     parser.add_argument('--gpu', type=str, default='0')
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--train_path', type=str, default='data/iwslt2014/train.de-en.bpe')
+    parser.add_argument('--dev_path', type=str, default='data/iwslt2014/dev.de-en.bpe')
+    parser.add_argument('--test_path', type=str, default='data/iwslt2014/test.de-en.bpe')
     args = parser.parse_args()
 
     print('Setting CUDA_VISIBLE_DEVICES...')
@@ -25,7 +29,8 @@ if __name__ == '__main__':
 
     print('Loading data...')
     func = getattr(datasets, dataset)
-    (source, target), (train_iterator, val_iterator, test_iterator) = func(device)
+    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, args.train_path,
+                                                                           args.dev_path, args.test_path)
     print('Done.')
 
     print('Creating model...')

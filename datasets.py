@@ -2,7 +2,7 @@ from torchtext.data import Field, BucketIterator
 from torchtext.datasets import Multi30k, IWSLT, TranslationDataset
 
 
-def multi30k(device):
+def multi30k(device, batch_size):
     print('Loading data with torchtext...')
     source = Field(
             sequential=True,
@@ -30,7 +30,7 @@ def multi30k(device):
             unk_token='<unk>'
         )
 
-    train_dataset, val_dataset, test_dataset = Multi30k.splits(exts=('.de','.en'), fields=(source, target))
+    train_dataset, val_dataset, test_dataset = Multi30k.splits(exts=('.de', '.en'), fields=(source, target))
     print('Done.')
 
     print('Building vocabulary...')
@@ -40,20 +40,18 @@ def multi30k(device):
 
     train_iterator, val_iterator, test_iterator = BucketIterator.splits(
         datasets=(train_dataset, val_dataset, test_dataset),
-        batch_size=32, 
+        batch_size=batch_size,
         device=device
     )
 
     return (source, target), (train_iterator, val_iterator, test_iterator)
 
 
-def iwslt2014(device, train_path='data/iwslt2014/train.de-en.bpe',
-              dev_path='data/iwslt2014/dev.de-en.bpe',
-              test_path='data/iwslt2014/test.de-en.bpe'):
-    return bpe_dataset(device, train_path, dev_path, test_path)
+def iwslt2014(device, batch_size, train_path, dev_path, test_path):
+    return bpe_dataset(device, train_path, dev_path, test_path, batch_size)
 
 
-def bpe_dataset(device, train_path, dev_path, test_path):
+def bpe_dataset(device, train_path, dev_path, test_path, batch_size):
     print('Loading data with torchtext...')
     source = Field(
             sequential=True,
@@ -91,7 +89,7 @@ def bpe_dataset(device, train_path, dev_path, test_path):
 
     train_iterator, val_iterator = BucketIterator.splits(
         datasets=(train_dataset, val_dataset),
-        batch_size=32, 
+        batch_size=batch_size,
         device=device
     )
 
@@ -100,7 +98,7 @@ def bpe_dataset(device, train_path, dev_path, test_path):
         train=False,
         shuffle=False,
         sort=False,
-        batch_size=32, 
+        batch_size=batch_size,
         device=device
     )
 
