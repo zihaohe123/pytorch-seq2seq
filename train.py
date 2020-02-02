@@ -31,6 +31,11 @@ func = getattr(datasets, dataset)
 (source, target), (train_iterator, val_iterator, test_iterator) = func(device)
 print('Done.')
 
+print('Creating dirs...')
+if not os.path.exists('experiments/test'):
+    os.makedirs('experiments/test')
+print('Done.')
+
 print('Creating model...')
 name = 'Seq2SeqWithMainstreamImprovements'    # replace with argparse
 class_ = getattr(model2lstm, name)
