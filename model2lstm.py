@@ -110,20 +110,20 @@ class Seq2Seq(nn.Module):
             #last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
             # constantly moving tensors between cpu and cuda is a bad idea which takes a lot of cpu utilization
             last_output_seq = torch.zeros(1, batch_size, dtype=torch.long, device=device).fill_(sos_tok)
-            last_output_emb = self.output_embedding(last_output_seq)
+            last_output_emb = self.output_embedding(last_output_seq)    # [1, batch_size, emb_dim]
 
             for t in range(0, max_length):
                 # last_hidden and last_cell comes from encoder
-                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (hidden, cell))
-                logits = self.linear(hidden_state)
+                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (hidden, cell))  # [1, batch_size, hid_dim]
+                logits = self.linear(hidden_state)  # [1, batch_size, output_dim]
                 logits_seq.append(logits)
                 
-                last_output = logits.argmax(2)
-                outputs.append(last_output)
+                last_output = logits.argmax(2)  # [1, batch_size]
+                outputs.append(last_output)  # [seq_len, batch_size]
 
                 last_output_emb = self.output_embedding(last_output)
 
-            logits_seq = torch.cat(logits_seq, dim=0)
+            logits_seq = torch.cat(logits_seq, dim=0)   # [seq_len, batch_size]
             outputs = np.array([i.tolist()[0] for i in outputs])
             return outputs, logits_seq 
 

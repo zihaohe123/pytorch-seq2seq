@@ -2,7 +2,7 @@ from torchtext.data import Field, BucketIterator
 from torchtext.datasets import Multi30k, IWSLT, TranslationDataset
 
 
-def multi30k(device, batch_size):
+def multi30k(device, batch_size, train_path, dev_path, test_path):
     print('Loading data with torchtext...')
     source = Field(
             sequential=True,
