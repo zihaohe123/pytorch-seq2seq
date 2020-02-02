@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
     parser.add_argument('--gpu', type=str, default='0')
     parser.add_argument('--dataset', type=str, choices=('iwslt', 'multi30k', 'bpe_dataset'), default='iwslt')
-    parser.add_argument('--model', type=str, choices=('seq2seq', 'Seq2SeqWithMainstreamImprovements'), default='seq2seq')
+    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'Seq2SeqWithMainstreamImprovements'), default='Seq2SeqWithMainstreamImprovements')
     parser.add_argument('--n_epochs', type=int, default=10)
     args = parser.parse_args()
 
