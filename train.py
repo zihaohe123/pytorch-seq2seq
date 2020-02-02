@@ -12,9 +12,16 @@ from torchtext.datasets import Multi30k
 
 import datasets
 import model2lstm
+import argparse
+
+parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
+parser.add_argument('--gpu', type=str, default='0')
+parser.add_argument('--n_epochs', type=int, default=10)
+args = parser.parse_args()
+
 
 print('Setting CUDA_VISIBLE_DEVICES...')
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
@@ -40,7 +47,7 @@ criterion = nn.CrossEntropyLoss(ignore_index=target_pad_idx, reduction='sum')
 patience = 1
 best_val_loss = float('inf')
 
-for epoch in range(1, 10+1):
+for epoch in range(1, args.n_epochs+1):
     model.train()
     acc_loss, total_toks, total_seqs = 0., 0, 0
     tqdm_iterator = tqdm.tqdm(train_iterator)

@@ -1,6 +1,7 @@
 from torchtext.data import Field, BucketIterator
 from torchtext.datasets import Multi30k, IWSLT, TranslationDataset
 
+
 def multi30k(device):
     print('Loading data with torchtext...')
     source = Field(
@@ -45,8 +46,12 @@ def multi30k(device):
 
     return (source, target), (train_iterator, val_iterator, test_iterator)
 
-def iwslt2014(device, train_path='data/iwslt2014/train.de-en.bpe', dev_path='data/iwslt2014/dev.de-en.bpe', test_path='data/iwslt2014/test.de-en.bpe'):
+
+def iwslt2014(device, train_path='data/iwslt2014/train.de-en.bpe',
+              dev_path='data/iwslt2014/dev.de-en.bpe',
+              test_path='data/iwslt2014/test.de-en.bpe'):
     return bpe_dataset(device, train_path, dev_path, test_path)
+
 
 def bpe_dataset(device, train_path, dev_path, test_path):
     print('Loading data with torchtext...')

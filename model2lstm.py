@@ -60,7 +60,7 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
                 last_output_emb = self.output_embedding(last_output)
 
             logits_seq = torch.cat(logits_seq, dim=0)
-            outputs = np.array([ i.tolist()[0] for i in outputs ])
+            outputs = np.array([i.tolist()[0] for i in outputs])
             return outputs, logits_seq 
 
     def loss(self, logits_seq, output_seq, criterion):

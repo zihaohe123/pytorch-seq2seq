@@ -7,9 +7,14 @@ import torch
 import numpy as np
 
 import datasets
+import argparse
+
+parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
+parser.add_argument('--gpu', type=str, default='0')
+args = parser.parse_args()
 
 print('Setting CUDA_VISIBLE_DEVICES...')
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Done.')
 
