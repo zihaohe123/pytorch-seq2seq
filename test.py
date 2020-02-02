@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     print('Loading config')
     config = torch.load(os.path.join('experiments/test', 'config.pt'))
-    dataset = config.dataset
+    dataset = config['dataset']
 
     print('Loading data...')
     func = getattr(datasets, dataset)
