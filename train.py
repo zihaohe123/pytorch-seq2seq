@@ -25,6 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('--dev_path', type=str, default='data/iwslt2014/dev.de-en.bpe')
     parser.add_argument('--test_path', type=str, default='data/iwslt2014/test.de-en.bpe')
     parser.add_argument('--n_epochs', type=int, default=10)
+    parser.add_argument('--grad_clip', type=float, default=5.)
     args = parser.parse_args()
 
     print('Setting CUDA_VISIBLE_DEVICES...')
@@ -78,7 +79,7 @@ if __name__ == '__main__':
 
             optimizer.zero_grad()
             loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+            nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             optimizer.step()
 
             total_toks += int(batch_output_len.sum())
