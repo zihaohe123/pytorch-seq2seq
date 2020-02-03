@@ -101,13 +101,9 @@ if __name__ == '__main__':
             with torch.no_grad():
                 batch_input_seq, batch_input_len = batch.src
                 batch_output_seq, batch_output_len = batch.trg
-                if args.model != 'BERT2LSTM':
-                    outputs, logits_seq = model(batch_input_seq, output_seq=None, training=False,
-                            sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0]-1, device=device)
-                else:
-                    outputs, logits_seq = model(batch_input_seq, batch_input_len, output_seq=None, training=False,
-                                                sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0] - 1,
-                                                device=device)
+                outputs, logits_seq = model(batch_input_seq, batch_input_len, output_seq=None, output_len=None, training=False,
+                                            sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0] - 1,
+                                            device=device)
 
                 loss = model.loss(logits_seq, batch_output_seq, criterion)
                 val_loss += loss.item()
