@@ -61,7 +61,7 @@ if __name__ == '__main__':
     print('Training:')
     optimizer = optim.Adam(model.parameters())
     target_pad_idx = target.vocab.stoi[target.pad_token]
-    target_sos_idx = target.vocab.stoi['<SOS>']
+    target_sos_idx = target.vocab.stoi['[CLS]']
     criterion = nn.CrossEntropyLoss(ignore_index=target_pad_idx, reduction='sum')
 
     patience = 1
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                 total_seqs += batch_output_len.shape[0]
 
                 # generate the sequences
-                if i == random_batch:
+                if i+1 == random_batch:
                     saved_outputs = outputs
                     saved_batch_output_seq = np.array(batch_output_seq.tolist())
 

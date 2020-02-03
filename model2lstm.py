@@ -167,7 +167,7 @@ class BERT2LSTM(nn.Module):
         hidden = hidden.unsqueeze(0)    # [1, batch_size, 768]  to match the input shape of decoder
         # cell = torch.randn(1, batch_size, 768, dtype=torch.float, device=device)
         last_hidden = hidden.contiguous()
-        last_cell = hidden.contiguous()
+        last_cell = last_hidden.detach().clone()
 
         if training:
             # full teacher forcing
@@ -180,7 +180,6 @@ class BERT2LSTM(nn.Module):
             # decode
             logits_seq = []
             outputs = []
-
             # last_output_seq = torch.LongTensor([sos_tok]).to(device).repeat(batch_size).view(1, batch_size)
             # constantly moving tensors between cpu and cuda is a bad idea which takes a lot of cpu utilization
             last_output_seq = torch.zeros(1, batch_size, dtype=torch.long, device=device).fill_(sos_tok)
