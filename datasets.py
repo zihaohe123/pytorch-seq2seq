@@ -77,9 +77,9 @@ def bpe_dataset(device, lower, train_path, dev_path, test_path, batch_size):
             unk_token='<unk>'
         )
 
-    train_dataset = TranslationDataset(path=train_path, exts=('.de','.en'), fields=(source, target))
-    val_dataset = TranslationDataset(path=dev_path, exts=('.de','.en'), fields=(source, target))
-    test_dataset = TranslationDataset(path=test_path, exts=('.de','.en'), fields=(source, target))
+    train_dataset = TranslationDataset(path=train_path, exts=('.de', '.en'), fields=(source, target))
+    val_dataset = TranslationDataset(path=dev_path, exts=('.de', '.en'), fields=(source, target))
+    test_dataset = TranslationDataset(path=test_path, exts=('.de', '.en'), fields=(source, target))
     print('Done.')
 
     print('Building vocabulary...')

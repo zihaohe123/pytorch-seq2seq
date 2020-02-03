@@ -29,14 +29,14 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
 
         # add dropout
         input_emb = self.dropout(input_emb)
-        _, (hidden, cell) = self.encoder(input_emb)   #(h_0 = _0_, c_0 = _0_)
+        _, (last_hidden, last_cell) = self.encoder(input_emb)   #(h_0 = _0_, c_0 = _0_)
 
         if training:
             # full teacher forcing
             output_emb = self.output_embedding(output_seq)
             output_emb = self.dropout(output_emb)
 
-            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (hidden, cell))
+            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
             logits_seq = F.linear(hidden_states, self.output_embedding.weight)
             return logits_seq
         else:
@@ -52,7 +52,7 @@ class Seq2SeqWithMainstreamImprovements(nn.Module):
 
             for t in range(0, max_length):
                 # last_hidden and last_cell comes from encoder
-                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (hidden, cell))
+                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (last_hidden, last_cell))
                 logits = F.linear(hidden_state, self.output_embedding.weight)
 
                 logits_seq.append(logits)
@@ -93,13 +93,13 @@ class Seq2Seq(nn.Module):
 
     def forward(self, input_seq, output_seq, training=True, sos_tok=0, max_length=0, device=None):
         input_emb = self.input_embedding(input_seq)
-        _, (hidden, cell) = self.encoder(input_emb)   # (h_0 = _0_, c_0 = _0_)
+        _, (last_hidden, last_cell) = self.encoder(input_emb)   # (h_0 = _0_, c_0 = _0_)
 
         if training:
             # full teacher forcing
             output_emb = self.output_embedding(output_seq)  # [seq_len, batch_size, emb_dim]
 
-            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (hidden, cell))
+            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
             logits_seq = self.linear(hidden_states)
             return logits_seq
         else:
@@ -116,7 +116,7 @@ class Seq2Seq(nn.Module):
 
             for t in range(0, max_length):
                 # last_hidden and last_cell comes from encoder
-                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (hidden, cell))  # [1, batch_size, hid_dim]
+                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (last_hidden, last_cell))  # [1, batch_size, hid_dim]
                 logits = self.linear(hidden_state)  # [1, batch_size, output_dim]
                 logits_seq.append(logits)
                 
@@ -165,15 +165,15 @@ class BERT2LSTM(nn.Module):
         hidden = self.encoder(input_seq, attention_mask=mask_ids)[0]    # [batch_size, seq_len, 768]
         hidden = hidden[:, 0]   # [batch_size, 768] we only need the representation of the first token to represent the entire sequence
         hidden = hidden.unsqueeze(0)    # [1, batch_size, 768]  to match the input shape of decoder
-        cell = torch.randn(1, batch_size, 768, dtype=torch.float, device=device)
-        hidden = hidden.contiguous()
-        cell = cell.contiguous()
+        # cell = torch.randn(1, batch_size, 768, dtype=torch.float, device=device)
+        last_hidden = hidden.contiguous()
+        last_cell = hidden.contiguous()
 
         if training:
             # full teacher forcing
             output_emb = self.output_embedding(output_seq)  # [seq_len, batch_size, emb_dim]
 
-            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (hidden, cell))
+            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
             logits_seq = self.linear(hidden_states)
             return logits_seq
         else:
@@ -188,7 +188,7 @@ class BERT2LSTM(nn.Module):
 
             for t in range(0, max_length):
                 # last_hidden and last_cell comes from encoder
-                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (hidden, cell))  # [1, batch_size, hid_dim]
+                hidden_state, (last_hidden, last_cell) = self.decoder(last_output_emb, (last_hidden, last_cell))  # [1, batch_size, hid_dim]
                 logits = self.linear(hidden_state)  # [1, batch_size, output_dim]
                 logits_seq.append(logits)
 
