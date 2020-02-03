@@ -13,6 +13,7 @@ from torchtext.datasets import Multi30k
 import datasets
 import model2lstm
 import argparse
+from transformers import BertTokenizer
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
@@ -37,7 +38,8 @@ if __name__ == '__main__':
     dataset = args.dataset
     func = getattr(datasets, dataset)
     lower = True if args.model != 'BERT2LSTM' else False
-    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, lower, args.train_path,
+    tokenizer = BertTokenizer.from_pretrained('bert-base-german-cased').encode if args.model == 'BERT2LSTM' else str.split
+    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, lower, tokenizer, args.train_path,
                                                                            args.dev_path, args.test_path)
     print('Done.')
 
