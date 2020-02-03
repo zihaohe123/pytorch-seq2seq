@@ -77,10 +77,7 @@ if __name__ == '__main__':
             batch_input_seq, batch_input_len = batch.src
             batch_output_seq, batch_output_len = batch.trg
 
-            if args.model != 'BERT2LSTM':
-                logits_seq = model(batch_input_seq, batch_output_seq, training=True, device=device)
-            else:
-                logits_seq = model(batch_input_seq, batch_input_len, batch_output_seq, training=True, device=device)
+            logits_seq = model(batch_input_seq, batch_input_len, batch_output_seq, batch_output_len, training=True, device=device)
             loss = model.loss(logits_seq, batch_output_seq, criterion)
 
             optimizer.zero_grad()
