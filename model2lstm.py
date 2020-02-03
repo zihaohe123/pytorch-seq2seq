@@ -20,7 +20,7 @@ class Seq2Seq(nn.Module):
         self.decoder = nn.LSTM(input_size=256, hidden_size=256, num_layers=2, dropout=0.5)
         self.linear = nn.Linear(in_features=256, out_features=output_vocab_size, bias=True)
 
-    def forward(self, input_seq, input_len, output_seq, output_len, training=True, sos_tok=0, max_length=0, device=None):
+    def forward(self, input_seq, input_len, output_seq, output_len, training=True, sos_tok=0, max_length=0, device='cpu'):
         input_emb = self.input_embedding(input_seq)
         _, (last_hidden, last_cell) = self.encoder(input_emb)   # (h_0 = _0_, c_0 = _0_)
 
@@ -87,7 +87,7 @@ class BERT2LSTM(nn.Module):
         for param in self.encoder.parameters():
             param.requires_grad = False
 
-    def forward(self, input_seq, input_lens, output_seq, output_len, training=True, sos_tok=0, max_length=0, device=None):
+    def forward(self, input_seq, input_lens, output_seq, output_len, training=True, sos_tok=0, max_length=0, device='cpu'):
 
         # _, (hidden, cell) = self.encoder(input_emb)  # (h_0 = _0_, c_0 = _0_)
         seq_len, batch_size = input_seq.shape

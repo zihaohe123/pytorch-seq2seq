@@ -18,9 +18,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
     parser.add_argument('--gpu', type=str, default='0')
     parser.add_argument('--dataset', type=str, choices=('iwslt2014', 'multi30k'), default='iwslt2014')
-    parser.add_argument('--bert', type=bool, default=False)
-    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'BERT2LSTM'),
-                        default='Seq2Seq')
+    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'BERT2LSTM'), default='Seq2Seq')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--train_path', type=str, default='data/iwslt2014/train.de-en.bpe')
     parser.add_argument('--dev_path', type=str, default='data/iwslt2014/dev.de-en.bpe')
@@ -37,7 +35,8 @@ if __name__ == '__main__':
     print('Loading data...')
     dataset = args.dataset
     func = getattr(datasets, dataset)
-    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, args.bert, args.train_path,
+    bert = 'BERT' in args.model
+    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, bert, args.train_path,
                                                                            args.dev_path, args.test_path)
     print('Done.')
 
