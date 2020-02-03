@@ -155,6 +155,9 @@ class BERT2LSTM(nn.Module):
         self.decoder = nn.LSTM(input_size=256, hidden_size=768, num_layers=1)
         self.linear = nn.Linear(in_features=768, out_features=output_vocab_size, bias=True)
 
+        for param in self.encoder.parameters():
+            param.requires_grad = False
+
     def forward(self, input_seq, input_lens, output_seq, training=True, sos_tok=0, max_length=0, device=None):
 
         # _, (hidden, cell) = self.encoder(input_emb)  # (h_0 = _0_, c_0 = _0_)
