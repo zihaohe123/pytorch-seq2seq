@@ -2,14 +2,14 @@ from torchtext.data import Field, BucketIterator
 from torchtext.datasets import Multi30k, IWSLT, TranslationDataset
 
 
-def multi30k(device, batch_size, train_path, dev_path, test_path):
+def multi30k(device, batch_size, lower, train_path, dev_path, test_path):
     print('Loading data with torchtext...')
     source = Field(
             sequential=True,
             use_vocab=True,
-            init_token='<SOS>',
-            eos_token='<EOS>',
-            lower=True,
+            init_token='[CLS]',
+            eos_token='[SEP]',
+            lower=lower,
             tokenize=str.split,
             include_lengths=True,
             batch_first=False,
@@ -20,8 +20,8 @@ def multi30k(device, batch_size, train_path, dev_path, test_path):
     target = Field(
             sequential=True,
             use_vocab=True,
-            init_token='<SOS>',
-            eos_token='<EOS>',
+            init_token='[CLS]',
+            eos_token='[SEP]',
             lower=True,
             tokenize=str.split,
             include_lengths=True,
@@ -47,19 +47,19 @@ def multi30k(device, batch_size, train_path, dev_path, test_path):
     return (source, target), (train_iterator, val_iterator, test_iterator)
 
 
-def iwslt2014(device, batch_size, train_path, dev_path, test_path):
-    return bpe_dataset(device, train_path, dev_path, test_path, batch_size)
+def iwslt2014(device, batch_size, lower, train_path, dev_path, test_path):
+    return bpe_dataset(device, lower, train_path, dev_path, test_path, batch_size)
 
 
-def bpe_dataset(device, train_path, dev_path, test_path, batch_size):
+def bpe_dataset(device, lower, train_path, dev_path, test_path, batch_size):
     print('Loading data with torchtext...')
     source = Field(
             sequential=True,
             use_vocab=True,
-            init_token='<SOS>',
-            eos_token='<EOS>',
+            init_token='[CLS]',
+            eos_token='[SEP]',
             tokenize=str.split,
-            include_lengths=True,
+            include_lengths=lower,
             batch_first=False,
             pad_token='<pad>',
             unk_token='<unk>'
@@ -68,8 +68,8 @@ def bpe_dataset(device, train_path, dev_path, test_path, batch_size):
     target = Field(
             sequential=True,
             use_vocab=True,
-            init_token='<SOS>',
-            eos_token='<EOS>',
+            init_token='[CLS]',
+            eos_token='[SEP]',
             tokenize=str.split,
             include_lengths=True,
             batch_first=False,

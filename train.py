@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
     parser.add_argument('--gpu', type=str, default='0')
     parser.add_argument('--dataset', type=str, choices=('iwslt2014', 'multi30k'), default='iwslt2014')
-    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'Seq2SeqWithMainstreamImprovements'),
+    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'Seq2SeqWithMainstreamImprovements', 'BERT2LSTM'),
                         default='Seq2SeqWithMainstreamImprovements')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--train_path', type=str, default='data/iwslt2014/train.de-en.bpe')
@@ -36,7 +36,8 @@ if __name__ == '__main__':
     print('Loading data...')
     dataset = args.dataset
     func = getattr(datasets, dataset)
-    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, args.train_path,
+    lower = True if args.model != 'BERT2LSTM' else False
+    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, lower, args.train_path,
                                                                            args.dev_path, args.test_path)
     print('Done.')
 
@@ -74,7 +75,10 @@ if __name__ == '__main__':
             batch_input_seq, batch_input_len = batch.src
             batch_output_seq, batch_output_len = batch.trg
 
-            logits_seq = model(batch_input_seq, batch_output_seq, training=True)
+            if args.model != 'BERT2LSTM':
+                logits_seq = model(batch_input_seq, batch_output_seq, training=True, device=device)
+            else:
+                logits_seq = model(batch_input_seq, batch_input_len, batch_output_seq, training=True, device=device)
             loss = model.loss(logits_seq, batch_output_seq, criterion)
 
             optimizer.zero_grad()
@@ -98,8 +102,13 @@ if __name__ == '__main__':
             with torch.no_grad():
                 batch_input_seq, batch_input_len = batch.src
                 batch_output_seq, batch_output_len = batch.trg
-                outputs, logits_seq = model(batch_input_seq, output_seq=None, training=False,
-                        sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0]-1, device=device)
+                if args.model != 'BERT2LSTM':
+                    outputs, logits_seq = model(batch_input_seq, output_seq=None, training=False,
+                            sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0]-1, device=device)
+                else:
+                    outputs, logits_seq = model(batch_input_seq, batch_input_len, output_seq=None, training=False,
+                                                sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0] - 1,
+                                                device=device)
 
                 loss = model.loss(logits_seq, batch_output_seq, criterion)
                 val_loss += loss.item()
