@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
     parser.add_argument('--gpu', type=str, default='0')
     parser.add_argument('--dataset', type=str, choices=('iwslt2014', 'multi30k'), default='iwslt2014')
-    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'BERT2LSTM','Seq2Seq_attention'), default='Seq2Seq_attention')
+    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'BERT2LSTM','Seq2Seq_attention'), default='BERT2LSTM')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--train_path', type=str, default='data/iwslt2014/train.de-en.bpe')
     parser.add_argument('--dev_path', type=str, default='data/iwslt2014/dev.de-en.bpe')
