@@ -7,6 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.autograd import Variable
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 class Decoder_attention(nn.Module):
     def __init__(self, embed_size, hidden_size, output_size,n_layers=1, dropout=0.2):
@@ -86,15 +87,21 @@ class Seq2Seq(nn.Module):
 
     def forward(self, input_seq, input_len, output_seq, output_len, training=True, sos_tok=0, max_length=0, device='cpu'):
         input_emb = self.input_embedding(input_seq)
-        _, (last_hidden, last_cell) = self.encoder(input_emb)   # (h_0 = _0_, c_0 = _0_)
+        packed_input = pack_padded_sequence(input_emb, input_len.cpu().numpy(),enforce_sorted=False)
+        _, (last_hidden, last_cell) = self.encoder(packed_input)   # (h_0 = _0_, c_0 = _0_)
 
         if training:
             # full teacher forcing
             output_emb = self.output_embedding(output_seq)  # [seq_len, batch_size, emb_dim]
-            # hidden_states 49 128 256
-            hidden_states, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
-            logits_seq = self.linear(hidden_states)
-            # S B 10215
+            packed_output = pack_padded_sequence(output_emb[:-1], output_len.cpu().numpy() - 1,
+                                                 enforce_sorted=False)
+            # hidden_states_normal, (last_hidden, last_cell) = self.decoder(output_emb[:-1], (last_hidden, last_cell))
+            hidden_states, (last_hidden, last_cell) = self.decoder(packed_output, (last_hidden, last_cell))
+            # hidden_states, seq_sum * 256
+            unpacked_hidden_states_output, input_sizes = pad_packed_sequence(hidden_states,
+                                                                             padding_value=int(1))
+            logits_seq = self.linear(unpacked_hidden_states_output)
+
             return logits_seq
         else:
             # decode
