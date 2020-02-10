@@ -18,8 +18,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Neural Machine Translation with Seq2Seq.')
     parser.add_argument('--gpu', type=str, default='0')
     parser.add_argument('--dataset', type=str, choices=('iwslt2014', 'multi30k'), default='iwslt2014')
-    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'BERT2LSTM'), default='Seq2Seq')
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--model', type=str, choices=('Seq2Seq', 'BERT2LSTM','Seq2Seq_attention'), default='Seq2Seq_attention')
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--train_path', type=str, default='data/iwslt2014/train.de-en.bpe')
     parser.add_argument('--dev_path', type=str, default='data/iwslt2014/dev.de-en.bpe')
     parser.add_argument('--test_path', type=str, default='data/iwslt2014/test.de-en.bpe')
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--grad_clip', type=float, default=5.)
     args = parser.parse_args()
 
-    print('Setting CUDA_VISIBLE_DEVICES...')
+    print('Setting CUDA_VISIBLE_DEVICEdS...')
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('Done.')
@@ -98,7 +98,7 @@ if __name__ == '__main__':
             with torch.no_grad():
                 batch_input_seq, batch_input_len = batch.src
                 batch_output_seq, batch_output_len = batch.trg
-                outputs, logits_seq = model(batch_input_seq, batch_input_len, output_seq=None, output_len=None, training=False,
+                outputs, logits_seq = model(batch_input_seq, batch_input_len, output_seq=batch_output_seq, output_len=None, training=False,
                                             sos_tok=target_sos_idx, max_length=batch_output_seq.shape[0] - 1,
                                             device=device)
 
