@@ -36,8 +36,8 @@ if __name__ == '__main__':
     dataset = args.dataset
     func = getattr(datasets, dataset)
     bert = 'BERT' in args.model
-    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, bert, args.train_path,
-                                                                           args.dev_path, args.test_path)
+    (source, target), (train_iterator, val_iterator, test_iterator) = func(device, args.batch_size, args.train_path,
+                                                                           args.dev_path, args.test_path, bert=bert)
     print('Done.')
 
     print('Creating dirs...')
