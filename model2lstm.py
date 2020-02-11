@@ -10,7 +10,7 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 class Decoder_attention(nn.Module):
-    def __init__(self, embedding_dim, hidden_size, output_size,num_layers=1, dropout=0.5):
+    def __init__(self, embedding_dim, hidden_size, output_size, num_layers=1, dropout=0.5):
         super(Decoder_attention, self).__init__()
         self.embed = nn.Embedding(output_size, embedding_dim)
         self.dropout = nn.Dropout(dropout, inplace=True)
@@ -18,23 +18,23 @@ class Decoder_attention(nn.Module):
         self.lstm = nn.LSTM(input_size=hidden_size*2, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout)
         self.out = nn.Linear(hidden_size*2, output_size)
 
-    def forward(self, input, last_hidden,last_cell,encoder_outputs,mask_ids):
+    def forward(self, input, last_hidden, last_cell, encoder_outputs, mask_ids):
         # Get the embedding of the current input word (last output word)
-        embedded = self.embed(input).unsqueeze(0)  # (1,B,N)
+        embedded = self.embed(input).unsqueeze(0)  # (1, B, N)
         embedded = self.dropout(embedded)
         # compute the score of context and then combine the input.
-        attn_weights = self.attention(last_hidden[-1], encoder_outputs,mask_ids)
-        context = attn_weights.bmm(encoder_outputs.transpose(0, 1))  # (B,1,N)
-        context = context.transpose(0, 1)  # (1,B,N)
+        attn_weights = self.attention(last_hidden[-1], encoder_outputs, mask_ids)
+        context = attn_weights.bmm(encoder_outputs.transpose(0, 1))  # (B, 1, N)
+        context = context.transpose(0, 1)  # (1, B, N)
         # Combine embedded input word and attended context, run through LSTM
 
         lstm_input = torch.cat([embedded, context], 2)
-        output, (hidden,cell) = self.lstm(lstm_input, (last_hidden,last_cell))
-        output = output.squeeze(0)  # (1,B,N) -> (B,N)
+        output, (hidden, cell) = self.lstm(lstm_input, (last_hidden, last_cell))
+        output = output.squeeze(0)  # (1, B, N) -> (B, N)
         context = context.squeeze(0)
         output = self.out(torch.cat([output, context], 1))
         output = F.log_softmax(output, dim=1)
-        return output, (hidden, cell),attn_weights
+        return output, (hidden, cell), attn_weights
 
 class Attention(nn.Module):
     def __init__(self, hidden_size):
@@ -46,13 +46,13 @@ class Attention(nn.Module):
         stdv = 1. / math.sqrt(self.v.size(0))
         self.v.data.uniform_(-stdv, stdv)
 
-    def forward(self, hidden, encoder_outputs,mask_ids):
+    def forward(self, hidden, encoder_outputs, mask_ids):
         # hidden shape is 32 256
         timestep = encoder_outputs.size(0)
         # transpose for easily computation
         h = hidden.repeat(timestep, 1, 1).transpose(0, 1)
         encoder_outputs = encoder_outputs.transpose(0, 1)  # [B*T*H]
-        attn_energies = self.score(h, encoder_outputs,mask_ids)
+        attn_energies = self.score(h, encoder_outputs, mask_ids)
         _ = F.softmax(attn_energies, dim=1).unsqueeze(1)
         # Here is the potential bugs Since it is so flat, nearly useless
         #[0.0288, 0.0283, 0.0280, 0.0281, 0.0286, 0.0280, 0.0286, 0.0283,
@@ -62,7 +62,7 @@ class Attention(nn.Module):
         # 0.0292, 0.0284, 0.0292]
         return F.softmax(attn_energies, dim=1).unsqueeze(1)
 
-    def score(self, hidden, encoder_outputs,mask_ids):
+    def score(self, hidden, encoder_outputs, mask_ids):
         # [B*T*H]->[B*T*2H]->[B*T*H]
         energy = F.relu(self.attn(torch.cat([hidden, encoder_outputs], 2)))
         energy = energy.transpose(1, 2)  # [B*H*T]
@@ -84,7 +84,7 @@ class Seq2Seq(nn.Module):
 
     def forward(self, input_seq, input_len, output_seq, output_len, training=True, sos_tok=0, max_length=0, device='cpu'):
         input_emb = self.input_embedding(input_seq)
-        packed_input = pack_padded_sequence(input_emb, input_len.cpu().numpy(),enforce_sorted=False)
+        packed_input = pack_padded_sequence(input_emb, input_len.cpu().numpy(), enforce_sorted=False)
         _, (last_hidden, last_cell) = self.encoder(packed_input)   # (h_0 = _0_, c_0 = _0_)
 
         if training:
@@ -161,7 +161,7 @@ class Seq2Seq_attention(nn.Module):
         mask_ids = pad_sequence([torch.ones(l.item(), dtype=torch.long, device='cuda') for l in input_len], batch_first=True)
         if training:
             for t in range(1, max_len):
-                output, (last_hidden, last_cell),attn_weights = self.decoder_attention(output, last_hidden, last_cell,encoder_hidden_states,mask_ids)
+                output, (last_hidden, last_cell), attn_weights = self.decoder_attention(output, last_hidden, last_cell, encoder_hidden_states, mask_ids)
                 # shape of output is B V
                 outputs[t] = output
                 top1 = output.data.max(1)[1] #select the top1 word
@@ -174,7 +174,7 @@ class Seq2Seq_attention(nn.Module):
         else:
             result = []
             for t in range(1, max_len):
-                output, (last_hidden, last_cell),attn_weights = self.decoder_attention(output, last_hidden, last_cell,encoder_hidden_states)
+                output, (last_hidden, last_cell), attn_weights = self.decoder_attention(output, last_hidden, last_cell, encoder_hidden_states, mask_ids)
                 # shape of output is B V
                 outputs[t] = output
                 top1 = output.data.max(1)[1] #select the top1 word
