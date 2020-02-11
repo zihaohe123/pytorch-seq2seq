@@ -10,28 +10,24 @@ from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 class Decoder_attention(nn.Module):
-    def __init__(self, embed_size, hidden_size, output_size,n_layers=1, dropout=0.2):
+    def __init__(self, embedding_dim, hidden_size, output_size,num_layers=1, dropout=0.5):
         super(Decoder_attention, self).__init__()
-        self.embed_size = embed_size
-        self.hidden_size =hidden_size
-        self.output_size =output_size#target voc size
-        self.n_layers   = n_layers
-
-        self.embed = nn.Embedding(output_size, embed_size) #一样的
+        self.embed = nn.Embedding(output_size, embedding_dim)
         self.dropout = nn.Dropout(dropout, inplace=True)
         self.attention = Attention(hidden_size)
-        self.lstm = nn.LSTM(input_size=256*2, hidden_size=256, num_layers=n_layers, dropout=0.5)
-        self.out = nn.Linear(hidden_size * 2, output_size)
+        self.lstm = nn.LSTM(input_size=hidden_size*2, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout)
+        self.out = nn.Linear(hidden_size*2, output_size)
 
-    def forward(self, input, last_hidden,last_cell,encoder_outputs):
+    def forward(self, input, last_hidden,last_cell,encoder_outputs,mask_ids):
         # Get the embedding of the current input word (last output word)
         embedded = self.embed(input).unsqueeze(0)  # (1,B,N)
         embedded = self.dropout(embedded)
-        # focuse on the shape of last_hidden
-        attn_weights = self.attention(last_hidden[-1], encoder_outputs)
+        # compute the score of context and then combine the input.
+        attn_weights = self.attention(last_hidden[-1], encoder_outputs,mask_ids)
         context = attn_weights.bmm(encoder_outputs.transpose(0, 1))  # (B,1,N)
         context = context.transpose(0, 1)  # (1,B,N)
-        # Combine embedded input word and attended context, run through RNN
+        # Combine embedded input word and attended context, run through LSTM
+
         lstm_input = torch.cat([embedded, context], 2)
         output, (hidden,cell) = self.lstm(lstm_input, (last_hidden,last_cell))
         output = output.squeeze(0)  # (1,B,N) -> (B,N)
@@ -41,38 +37,39 @@ class Decoder_attention(nn.Module):
         return output, (hidden, cell),attn_weights
 
 class Attention(nn.Module):
-    # 这边只需要输入一个hidden size就可以了，还有encoder还有hidden
-    # hidden的这个可能输入对不上。
     def __init__(self, hidden_size):
         super(Attention, self).__init__()
-        # from decoder to input
-        self.hidden_size = hidden_size   #256
+        self.hidden_size = hidden_size
         self.attn = nn.Linear(self.hidden_size*2, hidden_size)
         self.v = nn.Parameter(torch.rand(hidden_size))
+        # initialize the matrix
         stdv = 1. / math.sqrt(self.v.size(0))
-        self.v.data.uniform_(-stdv, stdv)#初始化一些东西哦。
+        self.v.data.uniform_(-stdv, stdv)
 
-    def forward(self, hidden, encoder_outputs):
-        timestep = encoder_outputs.size(0)
+    def forward(self, hidden, encoder_outputs,mask_ids):
         # hidden shape is 32 256
+        timestep = encoder_outputs.size(0)
+        # transpose for easily computation
         h = hidden.repeat(timestep, 1, 1).transpose(0, 1)
         encoder_outputs = encoder_outputs.transpose(0, 1)  # [B*T*H]
-        # transpose for easily computation
-        # first sentence   2 335 5 654  654 98
-        # second sen
-        # tence  2 65  65 5 6 654 68
-        attn_energies = self.score(h, encoder_outputs)
-
+        attn_energies = self.score(h, encoder_outputs,mask_ids)
+        _ = F.softmax(attn_energies, dim=1).unsqueeze(1)
+        # Here is the potential bugs Since it is so flat, nearly useless
+        #[0.0288, 0.0283, 0.0280, 0.0281, 0.0286, 0.0280, 0.0286, 0.0283,
+        # 0.0286, 0.0284, 0.0287, 0.0290, 0.0297, 0.0283, 0.0286, 0.0289,
+        # 0.0285, 0.0283, 0.0287, 0.0291, 0.0280, 0.0282, 0.0277, 0.0291,
+        # 0.0286, 0.0281, 0.0289, 0.0287, 0.0276, 0.0290, 0.0290, 0.0288,
+        # 0.0292, 0.0284, 0.0292]
         return F.softmax(attn_energies, dim=1).unsqueeze(1)
 
-    def score(self, hidden, encoder_outputs):
+    def score(self, hidden, encoder_outputs,mask_ids):
         # [B*T*H]->[B*T*2H]->[B*T*H]
         energy = F.relu(self.attn(torch.cat([hidden, encoder_outputs], 2)))
-        # 实际上不是一个一个算的，而是直接弄成了一个大的去计算。
         energy = energy.transpose(1, 2)  # [B*H*T]
         v = self.v.repeat(encoder_outputs.size(0), 1).unsqueeze(1)  # [B*1*H]
         energy = torch.bmm(v, energy)  # [B*1*T]
-        return energy.squeeze(1)  # [B*T]
+        _ = energy.squeeze(1).masked_fill(mask_ids == 0, -1e10)
+        return _  # [B*T]
 
 class Seq2Seq(nn.Module):
     def __init__(self, input_vocab_size, output_vocab_size):
@@ -147,8 +144,8 @@ class Seq2Seq_attention(nn.Module):
 
         self.input_embedding = nn.Embedding(num_embeddings=input_vocab_size, embedding_dim=256)
         self.encoder = nn.LSTM(input_size=256, hidden_size=256, num_layers=1, dropout=0.5)
-        # different from previous
-        self.decoder_attention = Decoder_attention(embed_size=256, hidden_size=256, output_size = output_vocab_size, n_layers=1, dropout=0.5)
+        # different from other decoder
+        self.decoder_attention = Decoder_attention(embedding_dim=256, hidden_size=256, output_size = output_vocab_size, num_layers=1, dropout=0.5)
         self.linear = nn.Linear(in_features=256, out_features=output_vocab_size, bias=True)
         self.vocab_size = output_vocab_size
 
@@ -158,13 +155,13 @@ class Seq2Seq_attention(nn.Module):
         max_len = output_seq.size(0)#this one is only for the training, different from max_length
         vocab_size = self.vocab_size
         outputs = Variable(torch.zeros(max_len, batch_size, vocab_size)).cuda()
-        # add padding
         encoder_hidden_states, (last_hidden, last_cell) = self.encoder(input_emb)   # (h_0 = _0_, c_0 = _0_)
-        output = Variable(output_seq.data[0, :])  # BOS the first one 222222
+        output = Variable(output_seq.data[0, :])  # BOS the first one <2>
+        # use the mask_ids on attention
+        mask_ids = pad_sequence([torch.ones(l.item(), dtype=torch.long, device='cuda') for l in input_len], batch_first=True)
         if training:
             for t in range(1, max_len):
-                # 输入好像是有问题。
-                output, (last_hidden, last_cell),attn_weights = self.decoder_attention(output, last_hidden, last_cell,encoder_hidden_states)
+                output, (last_hidden, last_cell),attn_weights = self.decoder_attention(output, last_hidden, last_cell,encoder_hidden_states,mask_ids)
                 # shape of output is B V
                 outputs[t] = output
                 top1 = output.data.max(1)[1] #select the top1 word
